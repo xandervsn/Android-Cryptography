@@ -27,7 +27,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     boolean yFormat = true;
     String cypher = "";
     String uInput;
+    String newInput;
     int cKey;
+    int rows;
     String vKey;
     String keyOut;
     String sOut = "";
@@ -58,7 +60,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         checked = ((RadioButton) v).isChecked();
         if(v.getId() == R.id.radio1){
             cypher = "scytale";
-            key.setVisibility(View.GONE);
+            key.setVisibility(View.VISIBLE);
         }else if(v.getId() == R.id.radio2){
             cypher = "caeser";
             key.setVisibility(View.VISIBLE);
@@ -97,7 +99,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void encrypt(EditText input, EditText key, Boolean easy){
         sOut = "";
         keyOut = "";
-        uInput = input.getText().toString();
+        newInput = input.getText().toString().toUpperCase();
+        uInput = "";
+        for (int i = 0; i < newInput.length(); i++) {
+            if(newInput.charAt(i) >= 'A' && newInput.charAt(i) <= 'Z'){
+                uInput = uInput + newInput.charAt(i);
+            }
+        }
+
+        uInput = uInput.replaceAll("\\s", "");
+        uInput = uInput.replaceAll("[^A-Z]", "");
         if(cypher.equals("caeser")){
             try {
                 cKey = parseInt(key.getText().toString());
@@ -205,8 +216,66 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         if (cypher.equals("scytale")) {
-            output.setText("scytale");
+            try{
+                rows = parseInt(key.getText().toString());
+            }
+            catch (Exception e) {
+                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+                alertDialogBuilder.setTitle("Invalid Key");
+                alertDialogBuilder
+                        .setMessage("Please select a valid key (Scytale ciphers require any integer)")
+                        .setCancelable(false)
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.dismiss();
+                            }
+                        });
+                AlertDialog alertDialog = alertDialogBuilder.create();
+                alertDialog.show();
+                return;
+            }
+
+            System.out.println(uInput);
+
+            int columns = uInput.length()/rows;
+            int mod = uInput.length() % rows;
+
+            if(mod != 0){
+                columns++;
+            }
+            char[][] cyl = new char[columns][rows];
+
+            if(mod != 0){
+                for (int i = mod; i < rows; i++) {
+                    cyl[columns-1][i] = '@';
+                }
+            }
+
+            current = 0;
+            for (int i = 0; i < rows; i++) {
+                for (int j = 0; j < columns; j++) {
+                    if (current < uInput.length()) {
+                        if (cyl[j][i] != '@') {
+                            cyl[j][i] = uInput.charAt(current);
+                            current++;
+                        }
+                    }
+                }
+            }
+
+            //adding the final chars to the result
+            for (int i = 0; i < columns; i++) {
+                for (int j = 0; j < rows; j++){
+                    if(encrypting){
+                        sOut += cyl[i][j];
+                    }else if(!encrypting){
+                        sOut += cyl[i][j];
+                    }
+                }
+            }
+            output.setText(sOut + ", " + encrypting);
         }
+
     }
 
     public void decrypt(EditText input, EditText key, Boolean encrypting){
@@ -214,6 +283,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             encrypting = false;
             encrypt(input, key, encrypting);
         }else if(cypher.equals("vigenere")){
+            encrypting = false;
+            encrypt(input, key, encrypting);
+        }else if(cypher.equals("scytale")){
             encrypting = false;
             encrypt(input, key, encrypting);
         }
