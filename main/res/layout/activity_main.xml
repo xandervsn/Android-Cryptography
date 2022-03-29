@@ -28,7 +28,7 @@
         <RadioButton android:id="@+id/radio3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Vignere"
+            android:text="Vigenere"
             android:onClick="onRadioButtonClicked"/>
         <EditText
             android:id="@+id/editText2"
