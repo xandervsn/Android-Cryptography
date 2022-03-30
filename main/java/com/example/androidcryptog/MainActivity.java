@@ -13,6 +13,8 @@ import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.TextView;
 
+import java.util.Locale;
+
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     Button encrypt;
@@ -30,6 +32,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     String newInput;
     int cKey;
     int rows;
+    int columns;
+    int sKey;
     String vKey;
     String keyOut;
     String sOut = "";
@@ -109,6 +113,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         uInput = uInput.replaceAll("\\s", "");
         uInput = uInput.replaceAll("[^A-Z]", "");
+
         if(cypher.equals("caeser")){
             try {
                 cKey = parseInt(key.getText().toString());
@@ -158,13 +163,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 output.setText(sOut);
             }
         }else if(cypher.equals("vigenere")){
-            vKey = key.getText().toString();
+            vKey = key.getText().toString().toUpperCase();
             int[] keyNums = new int[vKey.length()];
             for (int i = 0; i < vKey.length(); i++) {
                 if(vKey.charAt(i) >= 65 && vKey.charAt(i) <= 90){
-                    keyNums[i] = (int)vKey.charAt(i)-64;
-                }else if(vKey.charAt(i) >= 97 && vKey.charAt(i) <= 122){
-                    keyNums[i] = (int)vKey.charAt(i)-96;
+                    keyNums[i] = (int)vKey.charAt(i)-65;
                 }else {
                     AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
                     alertDialogBuilder.setTitle("Invalid Key");
@@ -178,11 +181,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             });
                     AlertDialog alertDialog = alertDialogBuilder.create();
                     alertDialog.show();
-                    yFormat = false;
-
+                    return;
                 }
             }
-            if(yFormat) {
                 for(int i = 0; i < uInput.length(); i++){
                     vWrap = i;
                     if(vWrap > keyNums.length - 1){
@@ -191,28 +192,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                     current = (int)uInput.charAt(i);
 
-                    if(encrypting) {
-                        mod = current + cKey;
-                        //loops around the alphabet if we reach z
-                        if(((current >= 65 && current <= 90) && mod > 96) || (mod > 90 && mod < 97)){
-                            mod -= 26;
-                        }else if(mod > 122){
-                            mod -= 26;
-                        }
-                    }else if(!encrypting){
-                        mod = current - cKey;
-                        //loops around the alphabet if we reach a
-                        if(((current >= 97 && current <= 122) && mod < 91) || (mod > 90 && mod < 97)){
-                            mod += 26;
-                        }else if(mod < 65){
-                            mod += 26;
+                    for(int j = 0; j < keyNums.length; j++){
+                        if(encrypting) {
+                            mod = current + keyNums[j];
+                            //loops around the alphabet if we reach z
+                            if(((current >= 65 && current <= 90) && mod > 96) || (mod > 90 && mod < 97)){
+                                mod -= 26;
+                            }else if(mod > 122){
+                                mod -= 26;
+                            }
+                        }else if(!encrypting){
+                            mod = current - keyNums[j];
+                            //loops around the alphabet if we reach a
+                            if(((current >= 97 && current <= 122) && mod < 91) || (mod > 90 && mod < 97)){
+                                mod += 26;
+                            }else if(mod < 65){
+                                mod += 26;
+                            }
                         }
                     }
 
                     sOut += (char)mod;
                 }
-                output.setText(sOut + ", " + encrypting);
-            }
+                output.setText(sOut);
         }
 
         if (cypher.equals("scytale")) {
@@ -235,17 +237,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 return;
             }
 
-            System.out.println(uInput);
+            columns = uInput.length()/rows;
+            int equals = uInput.length() % rows;
 
-            int columns = uInput.length()/rows;
-            int mod = uInput.length() % rows;
-
-            if(mod != 0){
+            if(equals != 0){
                 columns++;
             }
+
             char[][] cyl = new char[columns][rows];
 
-            if(mod != 0){
+            if(equals != 0){
                 for (int i = mod; i < rows; i++) {
                     cyl[columns-1][i] = '@';
                 }
@@ -263,19 +264,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
 
-            //adding the final chars to the result
             for (int i = 0; i < columns; i++) {
                 for (int j = 0; j < rows; j++){
-                    if(encrypting){
-                        sOut += cyl[i][j];
-                    }else if(!encrypting){
+                    if(encrypting) {
                         sOut += cyl[i][j];
                     }
                 }
             }
-            output.setText(sOut + ", " + encrypting);
+            System.out.println(rows);
+            System.out.println(columns);
+            output.setText(sOut);
+            sOut = "";
         }
-
     }
 
     public void decrypt(EditText input, EditText key, Boolean encrypting){
@@ -286,8 +286,46 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             encrypting = false;
             encrypt(input, key, encrypting);
         }else if(cypher.equals("scytale")){
-            encrypting = false;
-            encrypt(input, key, encrypting);
+            try{
+                mod = parseInt(key.getText().toString());
+            }
+            catch (Exception e) {
+                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+                alertDialogBuilder.setTitle("Invalid Key");
+                alertDialogBuilder
+                        .setMessage("Please select a valid key (Scytale ciphers require any integer)")
+                        .setCancelable(false)
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.dismiss();
+                            }
+                        });
+                AlertDialog alertDialog = alertDialogBuilder.create();
+                alertDialog.show();
+                return;
+            }
+
+            newInput = input.getText().toString().toUpperCase();
+            uInput = "";
+            for (int i = 0; i < newInput.length(); i++) {
+                if(newInput.charAt(i) >= 'A' && newInput.charAt(i) <= 'Z'){
+                    uInput = uInput + newInput.charAt(i);
+                }
+            }
+
+            uInput = uInput.replaceAll("\\s", "");
+            uInput = uInput.replaceAll("[^A-Z]", "");
+
+            sOut = "" + uInput.charAt(0);
+
+            for (int i = 1; i < uInput.length(); i++) {
+                i += sKey;
+                if(uInput.charAt(i) == '@'){
+                    output.setText(sOut);
+                    sOut = "";
+                }
+                sOut += uInput.charAt(i);
+            }
         }
     }
 }
